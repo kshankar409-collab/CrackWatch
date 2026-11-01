@@ -46,20 +46,20 @@ with st.sidebar:
     st.write("Reference: Standard 1 Rupee Coin (25mm)")
     st.write("Engine: OpenCV & ReportLab")
 
-# --- PDF Generation Function with Watermark & Repair Steps ---
-def create_repair_report_pdf(filename, width, length, status):
+# --- PDF Generation Function with Watermark & Multi-Crack Breakdown ---
+def create_repair_report_pdf(filename, crack_data, status):
     doc = SimpleDocTemplate(filename, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     story = []
     styles = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
-        'TitleStyle', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#1E3A8A"), alignment=1, spaceAfter=8
+        'TitleStyle', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor("#1E3A8A"), alignment=1, spaceAfter=8
     )
     sub_style = ParagraphStyle(
         'SubStyle', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor("#4B5563"), alignment=1, spaceAfter=15
     )
     heading_style = ParagraphStyle(
-        'HeadingStyle', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor("#B91C1C" if "CRITICAL" in status else "#15803D"), spaceBefore=10, spaceAfter=4
+        'HeadingStyle', parent=styles['Heading2'], fontSize=11, textColor=colors.HexColor("#B91C1C" if "CRITICAL" in status else "#15803D"), spaceBefore=10, spaceAfter=4
     )
     body_style = ParagraphStyle(
         'BodyStyle', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor("#1F2937"), spaceBefore=3, spaceAfter=3, leading=13
@@ -74,17 +74,16 @@ def create_repair_report_pdf(filename, width, length, status):
         canvas.drawCentredString(0, 0, "CRACKWATCH OFFICIAL")
         canvas.restoreState()
 
-    story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPORT", title_style))
+    story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPAIR REPORT", title_style))
     story.append(Paragraph(f"Generated On: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Location: Main Pillar Bridge", sub_style))
 
-    table_data = [
-        ['Inspection Metric', 'AI Measurement', 'Evaluation / Status'],
-        ['Max Crack Width', f'{width} mm', 'Severe Expansion' if width > 2.0 else 'Stable Structure'],
-        ['Total Crack Length', f'{length} mm', 'Tracked via Computer Vision'],
-        ['Danger Level', status, 'Action Required' if "CRITICAL" in status else 'Monitor Daily']
-    ]
+    # Build dynamic table rows for each detected crack
+    table_data = [['Crack ID', 'Width (mm)', 'Length (mm)', 'Danger Level & Status']]
+    for name, width, length in crack_data:
+        lvl = "CRITICAL (Severe)" if width > 2.0 else "MODERATE (Stable)"
+        table_data.append([name, f"{width} mm", f"{length} mm", lvl])
     
-    t = Table(table_data, colWidths=[130, 140, 230])
+    t = Table(table_data, colWidths=[90, 110, 110, 190])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1E3A8A")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
@@ -115,7 +114,7 @@ def create_repair_report_pdf(filename, width, length, status):
 
     doc.build(story, onFirstPage=add_watermark, onLaterPages=add_watermark)
 
-# --- Advanced Multi-Crack OpenCV Function with Unique Colors & Individual Measurements ---
+# --- Advanced Multi-Crack OpenCV Function ---
 def run_opencv_analysis(image_path):
     if not os.path.exists(image_path):
         return [("Crack #1", 2.1, 32.5)], image_path
@@ -124,7 +123,7 @@ def run_opencv_analysis(image_path):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     
-    # 1. Detect Reference Coin for scaling (Standard 1 Rupee Coin = 25mm diameter)
+    # Detect Reference Coin for scaling (25mm)
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=50,
                              param1=50, param2=40, minRadius=10, maxRadius=150)
     
@@ -137,7 +136,6 @@ def run_opencv_analysis(image_path):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         pixels_per_mm = (c_r * 2) / 25.0
 
-    # 2. Enhanced Edge Detection for Multiple Cracks
     edges = cv2.Canny(blurred, 40, 120)
     kernel = np.ones((3,3), np.uint8)
     dilated_edges = cv2.dilate(edges, kernel, iterations=1)
@@ -228,20 +226,22 @@ with col2:
             if os.path.exists(st.session_state['ann_img']):
                 st.image(st.session_state['ann_img'], caption="Annotated View: Each Crack in Unique Color & Individual Width", use_column_width=True)
             
-            st.markdown("### 🔍 Individual Crack Measurements:")
+            st.markdown("### 🔍 Individual Crack Measurements & Danger Levels:")
             for name, width, length in st.session_state['crack_data']:
+                danger_lvl = "🔴 CRITICAL (Severe)" if width > 2.0 else "🟠 MODERATE (Stable)"
+                
+                st.markdown(f"**{name}**")
                 c_a, c_b, c_c = st.columns(3)
-                c_a.metric(f"{name} ID", "Active")
-                c_b.metric("Width", f"{width} mm")
-                c_c.metric("Length", f"{length} mm")
+                c_a.metric("Width", f"{width} mm")
+                c_b.metric("Length", f"{length} mm")
+                c_c.metric("Status", danger_lvl.split()[0]) # Quick tag
+                st.write(f"Evaluation: **{danger_lvl}**")
+                st.write("---")
             
             st.error("⚠️ **Structural Integrity Alert:** Multiple distinct fractures tracked. Review individual metrics above.")
             
-            max_w = max([w for _, w, _ in st.session_state['crack_data']])
-            total_l = sum([l for _, _, l in st.session_state['crack_data']])
-            
             pdf_file_name = "CrackWatch_Repair_Directive.pdf"
-            create_repair_report_pdf(pdf_file_name, max_w, total_l, st.session_state['status'])
+            create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'])
             
             st.write("---")
             st.subheader("📥 Step 3: Download Watermarked PDF Report")
