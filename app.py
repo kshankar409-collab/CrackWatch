@@ -5,6 +5,7 @@ import datetime
 import os
 import random
 import pandas as pd
+from gtts import gTTS
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -132,7 +133,6 @@ def run_opencv_analysis(image_path):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     
-    # 1. Detect Reference Coin for scaling (25mm)
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=50,
                              param1=50, param2=40, minRadius=10, maxRadius=150)
     
@@ -146,12 +146,9 @@ def run_opencv_analysis(image_path):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
         pixels_per_mm = (c_r * 2) / 25.0
 
-    # 2. Full-Area Thermal Heatmap Generation (Spreads across the entire image canvas)
-    # Using the grayscale intensity variations to drive a full thermal gradient overlay
     full_thermal_colormap = cv2.applyColorMap(gray, cv2.COLORMAP_JET)
     heatmap_img = cv2.addWeighted(img, 0.45, full_thermal_colormap, 0.55, 0)
 
-    # 3. Clean Morphological Edge Processing for Bounding Boxes
     edges = cv2.Canny(blurred, 50, 140)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
@@ -252,7 +249,20 @@ with col2:
         if st.session_state.get('analyzed', False):
             st.success("✅ Full-Area Thermal Inspection Completed!")
             
-            # Side-by-Side Dual Image Display for Exhibition Impact
+            # Traffic-Light Emergency Priority Badge
+            max_w = max([w for _, w, _ in st.session_state['crack_data']])
+            total_l = sum([l for _, _, l in st.session_state['crack_data']])
+            crack_count = len(st.session_state['crack_data'])
+            chi_score = max(10, int(100 - (max_w * 10 + total_l * 0.2 + crack_count * 5)))
+            
+            if chi_score > 70:
+                st.success("🟢 **SAFETY STATUS: NORMAL / STABLE** - Regular long-term structural monitoring recommended.")
+            elif chi_score >= 40:
+                st.warning("🟡 **SAFETY STATUS: MODERATE WARNING** - Schedule minor epoxy sealing and surface patching within 30 days.")
+            else:
+                st.error("🚨 **SAFETY STATUS: CRITICAL EMERGENCY** - Immediate structural intervention, load restriction, and epoxy high-pressure grouting required!")
+
+            # Side-by-Side Dual Image Display
             tab_view1, tab_view2 = st.tabs(["📌 Annotated Bounding View", "🔥 Full-Area Thermal Stress Heatmap"])
             
             with tab_view1:
@@ -263,24 +273,29 @@ with col2:
                 if os.path.exists(st.session_state['heat_img']):
                     st.image(st.session_state['heat_img'], caption=f"Site: {location_input} | Full-Area Thermal Stress Map", use_column_width=True)
             
-            # Advanced Metrics Calculations
-            max_w = max([w for _, w, _ in st.session_state['crack_data']])
-            total_l = sum([l for _, _, l in st.session_state['crack_data']])
-            crack_count = len(st.session_state['crack_data'])
-            
-            # Structural Health Index (CHI) Score formula (0-100%)
-            chi_score = max(10, int(100 - (max_w * 10 + total_l * 0.2 + crack_count * 5)))
-            
             estimated_cost = int((total_l * 150) + (max_w * 900) + 2000)
             expansion_growth = round(random.uniform(9.2, 19.5), 1)
 
-            # Dashboard Header Metrics with CHI Score
+            # Dashboard Header Metrics
             st.markdown("### 🏆 Executive Intelligence Summary:")
             metric_col1, metric_col2, metric_col3 = st.columns(3)
             metric_col1.metric("Structural Health (CHI)", f"{chi_score}%", delta="Warning" if chi_score < 70 else "Stable", delta_color="inverse")
             metric_col2.metric("Est. Repair Cost", f"₹ {estimated_cost:,}", delta="Epoxy Grouting")
             if tracking_mode:
                 metric_col3.metric("MoM Expansion", f"+{expansion_growth}%", delta="High Risk", delta_color="inverse")
+
+            # AI Executive Briefing Summary Box & Voice Audio Generation
+            st.markdown("### 🤖 AI Consultant Executive Briefing & Voice Audio:")
+            ai_summary_text = f"Attention. Inspection report for site {location_input}. Detected {crack_count} distinct fracture zones. The Structural Health Index is computed at {chi_score} percent. Estimated restorative repair cost is {estimated_cost} rupees. Immediate engineering review is advised."
+            st.info(ai_summary_text)
+
+            # Generate Audio using gTTS
+            tts = gTTS(text=ai_summary_text, lang='en', slow=False)
+            audio_path = "CrackWatch_Audio_Report.mp3"
+            tts.save(audio_path)
+            
+            # Play audio directly in Streamlit
+            st.audio(audio_path, format='audio/mp3')
 
             # Severity Distribution Analytics
             critical_count = sum(1 for _, w, _ in st.session_state['crack_data'] if w > 2.0)
@@ -305,8 +320,6 @@ with col2:
                 st.write(f"Evaluation: **{danger_lvl}**")
                 st.write("---")
             
-            st.error(f"⚠️ **Alert at [{location_input}]:** Multiple fractures detected requiring immediate structural intervention.")
-            
             # PDF Report generation
             pdf_file_name = "CrackWatch_Repair_Directive.pdf"
             create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'], location_input, estimated_cost, expansion_growth, chi_score)
@@ -325,3 +338,4 @@ with col2:
         st.info("👈 Please upload an image or capture a live photo on the left to activate the AI scanner.")
 
 st.write("---")
+st.markdown("<p style='text-align: center; color: gray;'>CrackWatch AI Suite | Built with OpenCV, Streamlit & ReportLab</p>", unsafe_allow_html=True)
