@@ -51,7 +51,6 @@ with st.sidebar:
     location_input = st.text_input("Structure / Location Name", value="Main Highway Bridge - Pillar #4")
     
     tracking_mode = st.checkbox("Enable Time-Series Growth Tracking", value=True)
-    asset_mode = st.checkbox("Enable Asset Logbook Mode", value=True)
 
 # --- PDF Generation Function with Watermark & Advanced Metrics ---
 def create_repair_report_pdf(filename, crack_data, status, location, cost, growth, chi_score):
@@ -257,7 +256,7 @@ with col2:
             estimated_cost = int((total_l * 150) + (max_w * 900) + 2000)
             expansion_growth = round(random.uniform(9.2, 19.5), 1)
 
-            # Dashboard Header Metrics with CHI Score (Fixed delta_color)
+            # Dashboard Header Metrics with CHI Score
             st.markdown("### 🏆 Executive Intelligence Summary:")
             metric_col1, metric_col2, metric_col3 = st.columns(3)
             metric_col1.metric("Structural Health (CHI)", f"{chi_score}%", delta="Warning" if chi_score < 70 else "Stable", delta_color="inverse")
@@ -294,24 +293,6 @@ with col2:
             pdf_file_name = "CrackWatch_Repair_Directive.pdf"
             create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'], location_input, estimated_cost, expansion_growth, chi_score)
             
-            # Asset Logbook CSV Export Mode
-            if asset_mode:
-                st.write("---")
-                st.subheader("📋 Asset Logbook CSV Export")
-                df_export = pd.DataFrame(st.session_state['crack_data'], columns=["Crack ID", "Width (mm)", "Length (mm)"])
-                df_export["Location"] = location_input
-                df_export["CHI Score (%)"] = chi_score
-                df_export["Timestamp"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                
-                csv_data = df_export.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="📥 Download Inspection Logbook (.csv)",
-                    data=csv_data,
-                    file_name="CrackWatch_Asset_Logbook.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
-
             st.write("---")
             st.subheader("📥 Step 3: Download Certified Inspection PDF")
             with open(pdf_file_name, "rb") as pdf_f:
