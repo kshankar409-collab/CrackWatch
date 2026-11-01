@@ -5,7 +5,6 @@ import datetime
 import os
 import random
 import pandas as pd
-from gtts import gTTS
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -52,6 +51,7 @@ with st.sidebar:
     location_input = st.text_input("Structure / Location Name", value="Main Highway Bridge - Pillar #4")
     
     tracking_mode = st.checkbox("Enable Time-Series Growth Tracking", value=True)
+    uav_mode = st.checkbox("Enable UAV / Drone Telemetry Feed", value=True)
 
 # --- PDF Generation Function with Watermark & Advanced Metrics ---
 def create_repair_report_pdf(filename, crack_data, status, location, cost, growth, chi_score):
@@ -84,7 +84,7 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
     story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPAIR REPORT", title_style))
     story.append(Paragraph(f"Generated On: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Location: {location}", sub_style))
 
-    summary_text = f"<b>Structural Health Index (CHI):</b> <font color='#B91C1C'><b>{chi_score}% / 100%</b></font> | <b>Est. Repair Cost:</b> <b>₹ {cost:,}</b> | <b>Expansion Rate:</b> +{growth}%"
+    summary_text = f"<b>Structural Health Index (CHI):</b> <font color='#B91C1C'><b>% / 100%</b></font> | <b>Est. Repair Cost:</b> <b>₹ {cost:,}</b> | <b>Expansion Rate:</b> +{growth}%"
     story.append(Paragraph(summary_text, body_style))
     story.append(Spacer(1, 8))
 
@@ -249,6 +249,10 @@ with col2:
         if st.session_state.get('analyzed', False):
             st.success("✅ Full-Area Thermal Inspection Completed!")
             
+            # --- Optional UAV / Drone Telemetry Simulation Banner ---
+            if uav_mode:
+                st.info("🚁 **UAV Telemetry Feed Active:** Altitude: 14.2m | Gimbal Pitch: -45° | Optical-Thermal Sync: Optimal")
+
             # Traffic-Light Emergency Priority Badge
             max_w = max([w for _, w, _ in st.session_state['crack_data']])
             total_l = sum([l for _, _, l in st.session_state['crack_data']])
@@ -282,60 +286,14 @@ with col2:
             metric_col1.metric("Structural Health (CHI)", f"{chi_score}%", delta="Warning" if chi_score < 70 else "Stable", delta_color="inverse")
             metric_col2.metric("Est. Repair Cost", f"₹ {estimated_cost:,}", delta="Epoxy Grouting")
             if tracking_mode:
-                metric_col3.metric("MoM Expansion", f"+{expansion_growth}%", delta="High Risk", delta_color="inverse")
+                metric_col3.metric("MoM Expansion", f"+{expansion_growth}%", delta="High Risk", delta_value="inverse")
 
-            # AI Executive Briefing Summary Box & Voice Audio Generation
-            st.markdown("### 🤖 AI Consultant Executive Briefing & Voice Audio:")
-            ai_summary_text = f"Attention. Inspection report for site {location_input}. Detected {crack_count} distinct fracture zones. The Structural Health Index is computed at {chi_score} percent. Estimated restorative repair cost is {estimated_cost} rupees. Immediate engineering review is advised."
+            # AI Executive Briefing Summary Box
+            st.markdown("### 🤖 AI Consultant Executive Briefing:")
+            ai_summary_text = f"Inspection report for site **'{location_input}'**. Detected **{crack_count} distinct fracture zones**. The Structural Health Index is computed at **{chi_score}%**. Estimated restorative repair cost is **₹ {estimated_cost:,}**. Immediate engineering review is advised."
             st.info(ai_summary_text)
 
-            # Generate Audio using gTTS
-            tts = gTTS(text=ai_summary_text, lang='en', slow=False)
-            audio_path = "CrackWatch_Audio_Report.mp3"
-            tts.save(audio_path)
-            
-            # Play audio directly in Streamlit
-            st.audio(audio_path, format='audio/mp3')
-
-            # Severity Distribution Analytics
-            critical_count = sum(1 for _, w, _ in st.session_state['crack_data'] if w > 2.0)
-            moderate_count = crack_count - critical_count
-            
-            st.markdown("### 📊 Severity Distribution Analysis:")
-            chart_data = pd.DataFrame({
-                "Severity Level": ["Critical (>2mm)", "Moderate (<=2mm)"],
-                "Count": [critical_count, moderate_count]
-            }).set_index("Severity Level")
-            st.bar_chart(chart_data)
-
-            st.markdown("### 🔍 Individual Crack Measurements & Risk Levels:")
-            for name, width, length in st.session_state['crack_data']:
-                danger_lvl = "🔴 CRITICAL (Severe)" if width > 2.0 else "🟠 MODERATE (Stable)"
-                
-                st.markdown(f"**{name}**")
-                c_a, c_b, c_c = st.columns(3)
-                c_a.metric("Width", f"{width} mm")
-                c_b.metric("Length", f"{length} mm")
-                c_c.metric("Status", danger_lvl.split()[0])
-                st.write(f"Evaluation: **{danger_lvl}**")
-                st.write("---")
-            
-            # PDF Report generation
-            pdf_file_name = "CrackWatch_Repair_Directive.pdf"
-            create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'], location_input, estimated_cost, expansion_growth, chi_score)
-            
-            st.write("---")
-            st.subheader("📥 Step 3: Download Certified Inspection PDF")
-            with open(pdf_file_name, "rb") as pdf_f:
-                st.download_button(
-                    label="📥 Download Certified Repair PDF (Watermarked + CHI Score & Cost)",
-                    data=pdf_f,
-                    file_name=pdf_file_name,
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-    else:
-        st.info("👈 Please upload an image or capture a live photo on the left to activate the AI scanner.")
-
-st.write("---")
-st.markdown("<p style='text-align: center; color: gray;'>CrackWatch AI Suite | Built with OpenCV, Streamlit & ReportLab</p>", unsafe_allow_html=True)
+            # --- Civil Engineering Compliance & Standards Tagging ---
+            with st.expander("📖 Civil Engineering Compliance & Standards Tagging (IS 456 / ASTM E112)"):
+                st.write("""
+                * **IS 456:2000 Clause 6.2.1:** Surface crack widths exceeding 0.
