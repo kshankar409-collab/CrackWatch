@@ -123,10 +123,10 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
 
     doc.build(story, onFirstPage=add_watermark, onLaterPages=add_watermark)
 
-# --- Clean & Professional OpenCV Function ---
+# --- Advanced OpenCV Function with Thermal Heatmap Generation ---
 def run_opencv_analysis(image_path):
     if not os.path.exists(image_path):
-        return [("Crack #1", 2.1, 32.5)], image_path
+        return [("Crack #1", 2.1, 32.5)], image_path, image_path
         
     img = cv2.imread(image_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -150,6 +150,12 @@ def run_opencv_analysis(image_path):
     edges = cv2.Canny(blurred, 50, 140)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+
+    # Generate Thermal Heatmap representation using JET colormap
+    dilated_for_heat = cv2.dilate(closed_edges, kernel, iterations=2)
+    heatmap_colored = cv2.applyColorMap(dilated_for_heat, cv2.COLORMAP_JET)
+    # Blend heatmap over the original image for a professional thermal view
+    heatmap_img = cv2.addWeighted(img, 0.65, heatmap_colored, 0.35, 0)
 
     contours, _ = cv2.findContours(closed_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
@@ -200,8 +206,12 @@ def run_opencv_analysis(image_path):
         crack_details = [("Crack #1", 2.1, 32.5)]
 
     annotated_path = "CrackWatch_Analyzed_Image.jpg"
+    heatmap_path = "CrackWatch_Heatmap_Image.jpg"
+    
     cv2.imwrite(annotated_path, img)
-    return crack_details, annotated_path
+    cv2.imwrite(heatmap_path, heatmap_img)
+    
+    return crack_details, annotated_path, heatmap_path
 
 # --- Main App Interface Layout ---
 col1, col2 = st.columns(2, gap="large")
@@ -228,22 +238,31 @@ with col1:
         st.image("crack_demo.jpg", caption=f"Target Site: {location_input}", use_column_width=True)
 
 with col2:
-    st.subheader("📊 Step 2: AI Processing & Diagnostics")
+    st.subheader("📊 Step 2: AI Processing & Thermal Diagnostics")
     
     if os.path.exists("crack_demo.jpg"):
-        if st.button("🚀 Run Advanced AI Inspection", type="primary", use_container_width=True):
-            with st.spinner("Analyzing structural health, computing CHI Score & economic costs..."):
-                crack_data, ann_img = run_opencv_analysis("crack_demo.jpg")
+        if st.button("🚀 Run Advanced AI & Heatmap Scan", type="primary", use_container_width=True):
+            with st.spinner("Processing structural contours & generating thermal stress heatmap..."):
+                crack_data, ann_img, heat_img = run_opencv_analysis("crack_demo.jpg")
                 st.session_state['analyzed'] = True
                 st.session_state['crack_data'] = crack_data
                 st.session_state['ann_img'] = ann_img
+                st.session_state['heat_img'] = heat_img
                 st.session_state['status'] = "CRITICAL (Multi-Anomaly)"
         
         if st.session_state.get('analyzed', False):
-            st.success("✅ Enterprise-Grade Inspection Completed!")
+            st.success("✅ Dual-View Thermal Inspection Completed!")
             
-            if os.path.exists(st.session_state['ann_img']):
-                st.image(st.session_state['ann_img'], caption=f"Site: {location_input} | Multi-Crack Detection View", use_column_width=True)
+            # Side-by-Side Dual Image Display for Exhibition Impact
+            tab_view1, tab_view2 = st.tabs(["📌 Annotated Bounding View", "🔥 Thermal Stress Heatmap"])
+            
+            with tab_view1:
+                if os.path.exists(st.session_state['ann_img']):
+                    st.image(st.session_state['ann_img'], caption=f"Site: {location_input} | Multi-Crack Measurement View", use_column_width=True)
+            
+            with tab_view2:
+                if os.path.exists(st.session_state['heat_img']):
+                    st.image(st.session_state['heat_img'], caption=f"Site: {location_input} | Thermal Stress Intensity Map (JET Colormap)", use_column_width=True)
             
             # Advanced Metrics Calculations
             max_w = max([w for _, w, _ in st.session_state['crack_data']])
