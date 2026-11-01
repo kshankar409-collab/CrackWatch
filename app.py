@@ -257,13 +257,13 @@ with col2:
             estimated_cost = int((total_l * 150) + (max_w * 900) + 2000)
             expansion_growth = round(random.uniform(9.2, 19.5), 1)
 
-            # Dashboard Header Metrics with CHI Score
+            # Dashboard Header Metrics with CHI Score (Fixed delta_color)
             st.markdown("### 🏆 Executive Intelligence Summary:")
             metric_col1, metric_col2, metric_col3 = st.columns(3)
-            metric_col1.metric("Structural Health (CHI)", f"{chi_score}%", delta="Warning" if chi_score < 70 else "Stable", delta_value="inverse")
+            metric_col1.metric("Structural Health (CHI)", f"{chi_score}%", delta="Warning" if chi_score < 70 else "Stable", delta_color="inverse")
             metric_col2.metric("Est. Repair Cost", f"₹ {estimated_cost:,}", delta="Epoxy Grouting")
             if tracking_mode:
-                metric_col3.metric("MoM Expansion", f"+{expansion_growth}%", delta="High Risk", delta_value="inverse")
+                metric_col3.metric("MoM Expansion", f"+{expansion_growth}%", delta="High Risk", delta_color="inverse")
 
             # Severity Distribution Analytics
             critical_count = sum(1 for _, w, _ in st.session_state['crack_data'] if w > 2.0)
