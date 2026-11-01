@@ -123,7 +123,7 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
 
     doc.build(story, onFirstPage=add_watermark, onLaterPages=add_watermark)
 
-# --- Advanced OpenCV Function with Thermal Heatmap Generation ---
+# --- Advanced OpenCV Function with Full-Area Thermal Heatmap ---
 def run_opencv_analysis(image_path):
     if not os.path.exists(image_path):
         return [("Crack #1", 2.1, 32.5)], image_path, image_path
@@ -146,16 +146,15 @@ def run_opencv_analysis(image_path):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
         pixels_per_mm = (c_r * 2) / 25.0
 
-    # 2. Clean Morphological Edge Processing
+    # 2. Full-Area Thermal Heatmap Generation (Spreads across the entire image canvas)
+    # Using the grayscale intensity variations to drive a full thermal gradient overlay
+    full_thermal_colormap = cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+    heatmap_img = cv2.addWeighted(img, 0.45, full_thermal_colormap, 0.55, 0)
+
+    # 3. Clean Morphological Edge Processing for Bounding Boxes
     edges = cv2.Canny(blurred, 50, 140)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
-
-    # Generate Thermal Heatmap representation using JET colormap
-    dilated_for_heat = cv2.dilate(closed_edges, kernel, iterations=2)
-    heatmap_colored = cv2.applyColorMap(dilated_for_heat, cv2.COLORMAP_JET)
-    # Blend heatmap over the original image for a professional thermal view
-    heatmap_img = cv2.addWeighted(img, 0.65, heatmap_colored, 0.35, 0)
 
     contours, _ = cv2.findContours(closed_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
@@ -241,8 +240,8 @@ with col2:
     st.subheader("📊 Step 2: AI Processing & Thermal Diagnostics")
     
     if os.path.exists("crack_demo.jpg"):
-        if st.button("🚀 Run Advanced AI & Heatmap Scan", type="primary", use_container_width=True):
-            with st.spinner("Processing structural contours & generating thermal stress heatmap..."):
+        if st.button("🚀 Run Advanced AI & Full-Area Heatmap Scan", type="primary", use_container_width=True):
+            with st.spinner("Processing structural contours & rendering full-area thermal stress map..."):
                 crack_data, ann_img, heat_img = run_opencv_analysis("crack_demo.jpg")
                 st.session_state['analyzed'] = True
                 st.session_state['crack_data'] = crack_data
@@ -251,10 +250,10 @@ with col2:
                 st.session_state['status'] = "CRITICAL (Multi-Anomaly)"
         
         if st.session_state.get('analyzed', False):
-            st.success("✅ Dual-View Thermal Inspection Completed!")
+            st.success("✅ Full-Area Thermal Inspection Completed!")
             
             # Side-by-Side Dual Image Display for Exhibition Impact
-            tab_view1, tab_view2 = st.tabs(["📌 Annotated Bounding View", "🔥 Thermal Stress Heatmap"])
+            tab_view1, tab_view2 = st.tabs(["📌 Annotated Bounding View", "🔥 Full-Area Thermal Stress Heatmap"])
             
             with tab_view1:
                 if os.path.exists(st.session_state['ann_img']):
@@ -262,7 +261,7 @@ with col2:
             
             with tab_view2:
                 if os.path.exists(st.session_state['heat_img']):
-                    st.image(st.session_state['heat_img'], caption=f"Site: {location_input} | Thermal Stress Intensity Map (JET Colormap)", use_column_width=True)
+                    st.image(st.session_state['heat_img'], caption=f"Site: {location_input} | Full-Area Thermal Stress Map", use_column_width=True)
             
             # Advanced Metrics Calculations
             max_w = max([w for _, w, _ in st.session_state['crack_data']])
@@ -326,4 +325,3 @@ with col2:
         st.info("👈 Please upload an image or capture a live photo on the left to activate the AI scanner.")
 
 st.write("---")
-st.markdown("<p style='text-align: center; color: gray;'>CrackWatch AI Suite | Built with OpenCV, Streamlit & ReportLab</p>", unsafe_allow_html=True)
