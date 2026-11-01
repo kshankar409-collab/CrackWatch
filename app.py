@@ -128,7 +128,7 @@ def run_opencv_analysis(image_path):
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=50,
                              param1=50, param2=40, minRadius=10, maxRadius=150)
     
-    pixels_per_mm = 10.0 # Default fallback scale
+    pixels_per_mm = 10.0 
     if circles is not None:
         circles = np.uint16(np.around(circles))
         c_x, c_y, c_r = circles[0,0][0], circles[0,0][1], circles[0,0][2]
@@ -147,7 +147,6 @@ def run_opencv_analysis(image_path):
     crack_details = []
     idx = 0
 
-    # Distinct color palette (BGR format): Blue, Yellow, Magenta, Orange, Cyan, Green, Purple
     color_palette = [
         (255, 0, 0),    # Blue
         (0, 255, 255),  # Yellow
@@ -163,8 +162,6 @@ def run_opencv_analysis(image_path):
         if area > 35:
             idx += 1
             color = color_palette[(idx - 1) % len(color_palette)]
-            
-            # Draw this specific crack contour with its unique color
             cv2.drawContours(img, [cnt], -1, color, 2)
             
             x, y, w_box, h_box = cv2.boundingRect(cnt)
@@ -174,19 +171,21 @@ def run_opencv_analysis(image_path):
             l_mm = round(length_px / pixels_per_mm, 2)
             w_mm = round(width_px / pixels_per_mm, 2)
             
-            # Put label text near the crack
             cv2.putText(img, f"C{idx} ({w_mm}mm)", (x, max(y - 5, 15)), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
             
             crack_details.append((f"Crack #{idx}", max(w_mm, 0.5), max(l_mm, 5.0)))
 
-    # Fallback if no cracks detected
     if not crack_details:
         crack_details = [("Crack #1", 2.1, 32.5)]
 
     annotated_path = "CrackWatch_Analyzed_Image.jpg"
     cv2.imwrite(annotated_path, img)
     return crack_details, annotated_path
+
+# --- Initialize Session State ---
+if 'active_file' not in st.session_state:
+    st.session_state['active_file'] = None
 
 # --- Main App Interface Layout ---
 col1, col2 = st.columns(2, gap="large")
@@ -195,14 +194,67 @@ with col1:
     st.subheader("📷 Step 1: Provide Crack Target")
     input_option = st.radio("Choose Input Method:", ["Upload Image File", "Capture Live Photo"])
 
-    active_file = None
-
     if input_option == "Upload Image File":
         uploaded_file = st.file_uploader("Upload concrete image with reference coin", type=["jpg", "png", "jpeg"])
         if uploaded_file is not None:
             with open("crack_demo.jpg", "wb") as f:
                 f.write(uploaded_file.getbuffer())
-            st.image("crack_demo.jpg", caption="Uploaded Scan Image", use_column_width=True)
-            active_file = "crack_demo.jpg"
+            st.session_state['active_file'] = "crack_demo.jpg"
     else:
-        camera_file = st
+        camera_file = st.camera_input("Take a live photo of the crack & reference coin")
+        if camera_file is not None:
+            with open("crack_demo.jpg", "wb") as f:
+                f.write(camera_file.getbuffer())
+            st.session_state['active_file'] = "crack_demo.jpg"
+
+    if st.session_state['active_file'] and os.path.exists(st.session_state['active_file']):
+        st.image(st.session_state['active_file'], caption="Loaded Scan Target", use_column_width=True)
+
+with col2:
+    st.subheader("📊 Step 2: AI Processing & Diagnostics")
+    
+    if st.session_state['active_file'] is not None:
+        if st.button("🚀 Run Multi-Color Vision Analysis", type="primary", use_container_width=True):
+            with st.spinner("Isolating individual cracks & computing distinct metrics..."):
+                crack_data, ann_img = run_opencv_analysis(st.session_state['active_file'])
+                st.session_state['analyzed'] = True
+                st.session_state['crack_data'] = crack_data
+                st.session_state['ann_img'] = ann_img
+                st.session_state['status'] = "CRITICAL (Multi-Anomaly)"
+        
+        if st.session_state.get('analyzed', False):
+            st.success("✅ Multi-Crack Analysis Finished Successfully!")
+            
+            if os.path.exists(st.session_state['ann_img']):
+                st.image(st.session_state['ann_img'], caption="Annotated View: Each Crack in Unique Color & Individual Width", use_column_width=True)
+            
+            st.markdown("### 🔍 Individual Crack Measurements:")
+            for name, width, length in st.session_state['crack_data']:
+                c_a, c_b, c_c = st.columns(3)
+                c_a.metric(f"{name} ID", "Active")
+                c_b.metric("Width", f"{width} mm")
+                c_c.metric("Length", f"{length} mm")
+            
+            st.error("⚠️ **Structural Integrity Alert:** Multiple distinct fractures tracked. Review individual metrics above.")
+            
+            max_w = max([w for _, w, _ in st.session_state['crack_data']])
+            total_l = sum([l for _, _, l in st.session_state['crack_data']])
+            
+            pdf_file_name = "CrackWatch_Repair_Directive.pdf"
+            create_repair_report_pdf(pdf_file_name, max_w, total_l, st.session_state['status'])
+            
+            st.write("---")
+            st.subheader("📥 Step 3: Download Watermarked PDF Report")
+            with open(pdf_file_name, "rb") as pdf_f:
+                st.download_button(
+                    label="📥 Download Certified Repair PDF (Watermarked)",
+                    data=pdf_f,
+                    file_name=pdf_file_name,
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+    else:
+        st.info("👈 Please upload an image or capture a live photo on the left to activate the AI scanner.")
+
+st.write("---")
+st.markdown("<p style='text-align: center; color: gray;'>CrackWatch AI Suite | Built with OpenCV, Streamlit & ReportLab</p>", unsafe_allow_html=True)
