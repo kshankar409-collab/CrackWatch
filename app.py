@@ -40,7 +40,7 @@ st.markdown('<p class="sub-title">Advanced Computer Vision Platform | Science Ex
 # --- Sidebar Team Info ---
 with st.sidebar:
     st.header("👥 Project Team")
-    st.info("**Developers:**\n* Shreya Ughade\n* Srija Bera\n* Divyansh Patel\n* Krishnashankar Patel")
+    st.info("**Developers:**\n* Shreya Ughade\n* Srija Bera\n* Divyansh Patel\n* Project Lead")
     st.write("---")
     st.markdown("### ⚙️ Calibration Specs")
     st.write("Reference: Standard 1 Rupee Coin (25mm)")
@@ -108,7 +108,7 @@ def create_repair_report_pdf(filename, crack_data, status):
     story.append(Spacer(1, 10))
 
     story.append(Paragraph("👥 Project Team Credits:", heading_style))
-    team_text = "Shreya Ughade | Srija Bera | Divyansh Patel | Krishnashankar Patel<br/><i>Subodh Material Technologists Private Limited R&D</i>"
+    team_text = "Shreya Ughade | Srija Bera | Divyansh Patel | Project Lead<br/><i>CrackWatch AI System</i>"
     story.append(Paragraph(team_text, body_style))
 
     doc.build(story, onFirstPage=add_watermark, onLaterPages=add_watermark)
@@ -130,7 +130,6 @@ def run_opencv_analysis(image_path):
     if circles is not None:
         circles = np.uint16(np.around(circles))
         c_x, c_y, c_r = circles[0,0][0], circles[0,0][1], circles[0,0][2]
-        # Draw clean glowing green ring for reference coin
         cv2.circle(img, (c_x, c_y), c_r, (0, 255, 0), 2)
         cv2.circle(img, (c_x, c_y), 3, (0, 255, 0), -1)
         cv2.putText(img, "Ref Coin [25mm]", (c_x - 55, c_y - c_r - 10), 
@@ -147,7 +146,6 @@ def run_opencv_analysis(image_path):
     crack_details = []
     idx = 0
 
-    # Modern high-contrast color palette (BGR)
     color_palette = [
         (255, 50, 50),    # Bright Blue
         (0, 215, 255),    # Gold/Yellow
@@ -156,25 +154,21 @@ def run_opencv_analysis(image_path):
         (0, 255, 127)     # Spring Green
     ]
 
-    # Sort contours by area to filter out tiny background noise and show prominent cracks
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 80:  # Minimum threshold to avoid clutter
+        if area > 80:
             idx += 1
-            if idx > 6:  # Limit to top 6 prominent cracks for clean view
+            if idx > 6:
                 break
                 
             color = color_palette[(idx - 1) % len(color_palette)]
             
-            # Draw smooth bounding box or rotated bounding box for clean UI presentation
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
             box = box.astype(np.int32)
             cv2.drawContours(img, [box], 0, color, 2)
-            
-            # Also lightly draw the core contour
             cv2.drawContours(img, [cnt], -1, color, 1)
 
             x, y, w_box, h_box = cv2.boundingRect(cnt)
@@ -184,7 +178,6 @@ def run_opencv_analysis(image_path):
             l_mm = round(length_px / pixels_per_mm, 2)
             w_mm = round(width_px / pixels_per_mm, 2)
             
-            # Clean background label box for text readability
             label = f"C{idx}: {w_mm}mm"
             (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
             cv2.rectangle(img, (x, max(y - 22, 5)), (x + text_w + 6, max(y - 2, 20)), (0, 0, 0), -1)
