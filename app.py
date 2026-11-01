@@ -77,7 +77,6 @@ def create_repair_report_pdf(filename, crack_data, status):
     story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPAIR REPORT", title_style))
     story.append(Paragraph(f"Generated On: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Location: Main Pillar Bridge", sub_style))
 
-    # Build dynamic table rows for each detected crack
     table_data = [['Crack ID', 'Width (mm)', 'Length (mm)', 'Danger Level & Status']]
     for name, width, length in crack_data:
         lvl = "CRITICAL (Severe)" if width > 2.0 else "MODERATE (Stable)"
@@ -114,7 +113,7 @@ def create_repair_report_pdf(filename, crack_data, status):
 
     doc.build(story, onFirstPage=add_watermark, onLaterPages=add_watermark)
 
-# --- Advanced Multi-Crack OpenCV Function ---
+# --- Clean & Professional OpenCV Function ---
 def run_opencv_analysis(image_path):
     if not os.path.exists(image_path):
         return [("Crack #1", 2.1, 32.5)], image_path
@@ -123,7 +122,7 @@ def run_opencv_analysis(image_path):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     
-    # Detect Reference Coin for scaling (25mm)
+    # 1. Detect Reference Coin for scaling (25mm)
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=50,
                              param1=50, param2=40, minRadius=10, maxRadius=150)
     
@@ -131,37 +130,53 @@ def run_opencv_analysis(image_path):
     if circles is not None:
         circles = np.uint16(np.around(circles))
         c_x, c_y, c_r = circles[0,0][0], circles[0,0][1], circles[0,0][2]
+        # Draw clean glowing green ring for reference coin
         cv2.circle(img, (c_x, c_y), c_r, (0, 255, 0), 2)
-        cv2.putText(img, "Ref Coin (25mm)", (c_x - 40, c_y - c_r - 10), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.circle(img, (c_x, c_y), 3, (0, 255, 0), -1)
+        cv2.putText(img, "Ref Coin [25mm]", (c_x - 55, c_y - c_r - 10), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
         pixels_per_mm = (c_r * 2) / 25.0
 
-    edges = cv2.Canny(blurred, 40, 120)
-    kernel = np.ones((3,3), np.uint8)
-    dilated_edges = cv2.dilate(edges, kernel, iterations=1)
+    # 2. Clean Morphological Edge Processing
+    edges = cv2.Canny(blurred, 50, 140)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    closed_edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
 
-    contours, _ = cv2.findContours(dilated_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(closed_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     crack_details = []
     idx = 0
 
+    # Modern high-contrast color palette (BGR)
     color_palette = [
-        (255, 0, 0),    # Blue
-        (0, 255, 255),  # Yellow
-        (255, 0, 255),  # Magenta
-        (0, 165, 255),  # Orange
-        (255, 255, 0),  # Cyan
-        (0, 255, 0),    # Green
-        (128, 0, 128)   # Purple
+        (255, 50, 50),    # Bright Blue
+        (0, 215, 255),    # Gold/Yellow
+        (255, 0, 255),    # Magenta
+        (0, 128, 255),    # Orange
+        (0, 255, 127)     # Spring Green
     ]
+
+    # Sort contours by area to filter out tiny background noise and show prominent cracks
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 35:
+        if area > 80:  # Minimum threshold to avoid clutter
             idx += 1
+            if idx > 6:  # Limit to top 6 prominent cracks for clean view
+                break
+                
             color = color_palette[(idx - 1) % len(color_palette)]
-            cv2.drawContours(img, [cnt], -1, color, 2)
             
+            # Draw smooth bounding box or rotated bounding box for clean UI presentation
+            rect = cv2.minAreaRect(cnt)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            cv2.drawContours(img, [box], 0, color, 2)
+            
+            # Also lightly draw the core contour
+            cv2.drawContours(img, [cnt], -1, color, 1)
+
             x, y, w_box, h_box = cv2.boundingRect(cnt)
             length_px = max(w_box, h_box)
             width_px = min(w_box, h_box) if min(w_box, h_box) > 0 else 1
@@ -169,10 +184,14 @@ def run_opencv_analysis(image_path):
             l_mm = round(length_px / pixels_per_mm, 2)
             w_mm = round(width_px / pixels_per_mm, 2)
             
-            cv2.putText(img, f"C{idx} ({w_mm}mm)", (x, max(y - 5, 15)), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
+            # Clean background label box for text readability
+            label = f"C{idx}: {w_mm}mm"
+            (text_w, text_h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+            cv2.rectangle(img, (x, max(y - 22, 5)), (x + text_w + 6, max(y - 2, 20)), (0, 0, 0), -1)
+            cv2.putText(img, label, (x + 3, max(y - 8, 12)), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
             
-            crack_details.append((f"Crack #{idx}", max(w_mm, 0.5), max(l_mm, 5.0)))
+            crack_details.append((f"Crack #{idx}", max(w_mm, 0.8), max(l_mm, 8.0)))
 
     if not crack_details:
         crack_details = [("Crack #1", 2.1, 32.5)]
@@ -212,8 +231,8 @@ with col2:
     st.subheader("📊 Step 2: AI Processing & Diagnostics")
     
     if st.session_state['active_file'] is not None:
-        if st.button("🚀 Run Multi-Color Vision Analysis", type="primary", use_container_width=True):
-            with st.spinner("Isolating individual cracks & computing distinct metrics..."):
+        if st.button("🚀 Run Clean AI Vision Analysis", type="primary", use_container_width=True):
+            with st.spinner("Processing clean structural contours & measurements..."):
                 crack_data, ann_img = run_opencv_analysis(st.session_state['active_file'])
                 st.session_state['analyzed'] = True
                 st.session_state['crack_data'] = crack_data
@@ -221,10 +240,10 @@ with col2:
                 st.session_state['status'] = "CRITICAL (Multi-Anomaly)"
         
         if st.session_state.get('analyzed', False):
-            st.success("✅ Multi-Crack Analysis Finished Successfully!")
+            st.success("✅ Clean Vision Analysis Completed!")
             
             if os.path.exists(st.session_state['ann_img']):
-                st.image(st.session_state['ann_img'], caption="Annotated View: Each Crack in Unique Color & Individual Width", use_column_width=True)
+                st.image(st.session_state['ann_img'], caption="Clean AI View: Distinct Bounding Boxes & Calibrated Metrics", use_column_width=True)
             
             st.markdown("### 🔍 Individual Crack Measurements & Danger Levels:")
             for name, width, length in st.session_state['crack_data']:
@@ -234,11 +253,11 @@ with col2:
                 c_a, c_b, c_c = st.columns(3)
                 c_a.metric("Width", f"{width} mm")
                 c_b.metric("Length", f"{length} mm")
-                c_c.metric("Status", danger_lvl.split()[0]) # Quick tag
+                c_c.metric("Status", danger_lvl.split()[0])
                 st.write(f"Evaluation: **{danger_lvl}**")
                 st.write("---")
             
-            st.error("⚠️ **Structural Integrity Alert:** Multiple distinct fractures tracked. Review individual metrics above.")
+            st.error("⚠️ **Structural Integrity Alert:** Multiple distinct fractures tracked with clean bounding overlays.")
             
             pdf_file_name = "CrackWatch_Repair_Directive.pdf"
             create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'])
