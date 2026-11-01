@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 import os
 import random
+import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -50,9 +51,10 @@ with st.sidebar:
     location_input = st.text_input("Structure / Location Name", value="Main Highway Bridge - Pillar #4")
     
     tracking_mode = st.checkbox("Enable Time-Series Growth Tracking", value=True)
+    asset_mode = st.checkbox("Enable Asset Logbook Mode", value=True)
 
 # --- PDF Generation Function with Watermark & Advanced Metrics ---
-def create_repair_report_pdf(filename, crack_data, status, location, cost, growth):
+def create_repair_report_pdf(filename, crack_data, status, location, cost, growth, chi_score):
     doc = SimpleDocTemplate(filename, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     story = []
     styles = getSampleStyleSheet()
@@ -82,7 +84,7 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
     story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPAIR REPORT", title_style))
     story.append(Paragraph(f"Generated On: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Location: {location}", sub_style))
 
-    summary_text = f"<b>Economic Impact Analysis:</b> Estimated Repair Cost: <b>₹ {cost:,}</b> | <b>Expansion Rate (MoM):</b> +{growth}%"
+    summary_text = f"<b>Structural Health Index (CHI):</b> <font color='#B91C1C'><b>{chi_score}% / 100%</b></font> | <b>Est. Repair Cost:</b> <b>₹ {cost:,}</b> | <b>Expansion Rate:</b> +{growth}%"
     story.append(Paragraph(summary_text, body_style))
     story.append(Spacer(1, 8))
 
@@ -231,7 +233,7 @@ with col2:
     
     if os.path.exists("crack_demo.jpg"):
         if st.button("🚀 Run Advanced AI Inspection", type="primary", use_container_width=True):
-            with st.spinner("Analyzing structural health, computing cost & expansion rates..."):
+            with st.spinner("Analyzing structural health, computing CHI Score & economic costs..."):
                 crack_data, ann_img = run_opencv_analysis("crack_demo.jpg")
                 st.session_state['analyzed'] = True
                 st.session_state['crack_data'] = crack_data
@@ -239,21 +241,40 @@ with col2:
                 st.session_state['status'] = "CRITICAL (Multi-Anomaly)"
         
         if st.session_state.get('analyzed', False):
-            st.success("✅ Inspection & Economic Analysis Completed!")
+            st.success("✅ Enterprise-Grade Inspection Completed!")
             
             if os.path.exists(st.session_state['ann_img']):
                 st.image(st.session_state['ann_img'], caption=f"Site: {location_input} | Multi-Crack Detection View", use_column_width=True)
             
+            # Advanced Metrics Calculations
             max_w = max([w for _, w, _ in st.session_state['crack_data']])
             total_l = sum([l for _, _, l in st.session_state['crack_data']])
+            crack_count = len(st.session_state['crack_data'])
+            
+            # Structural Health Index (CHI) Score formula (0-100%)
+            chi_score = max(10, int(100 - (max_w * 10 + total_l * 0.2 + crack_count * 5)))
+            
             estimated_cost = int((total_l * 150) + (max_w * 900) + 2000)
             expansion_growth = round(random.uniform(9.2, 19.5), 1)
 
-            st.markdown("### 💰 Economic & Growth Impact Metrics:")
-            m1, m2 = st.columns(2)
-            m1.metric("Est. Repair Cost", f"₹ {estimated_cost:,}", delta="Epoxy Grouting Estimate")
+            # Dashboard Header Metrics with CHI Score
+            st.markdown("### 🏆 Executive Intelligence Summary:")
+            metric_col1, metric_col2, metric_col3 = st.columns(3)
+            metric_col1.metric("Structural Health (CHI)", f"{chi_score}%", delta="Warning" if chi_score < 70 else "Stable", delta_value="inverse")
+            metric_col2.metric("Est. Repair Cost", f"₹ {estimated_cost:,}", delta="Epoxy Grouting")
             if tracking_mode:
-                m2.metric("MoM Expansion Rate", f"+{expansion_growth}%", delta="High Risk Growth")
+                metric_col3.metric("MoM Expansion", f"+{expansion_growth}%", delta="High Risk", delta_value="inverse")
+
+            # Severity Distribution Analytics
+            critical_count = sum(1 for _, w, _ in st.session_state['crack_data'] if w > 2.0)
+            moderate_count = crack_count - critical_count
+            
+            st.markdown("### 📊 Severity Distribution Analysis:")
+            chart_data = pd.DataFrame({
+                "Severity Level": ["Critical (>2mm)", "Moderate (<=2mm)"],
+                "Count": [critical_count, moderate_count]
+            }).set_index("Severity Level")
+            st.bar_chart(chart_data)
 
             st.markdown("### 🔍 Individual Crack Measurements & Risk Levels:")
             for name, width, length in st.session_state['crack_data']:
@@ -269,14 +290,33 @@ with col2:
             
             st.error(f"⚠️ **Alert at [{location_input}]:** Multiple fractures detected requiring immediate structural intervention.")
             
+            # PDF Report generation
             pdf_file_name = "CrackWatch_Repair_Directive.pdf"
-            create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'], location_input, estimated_cost, expansion_growth)
+            create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'], location_input, estimated_cost, expansion_growth, chi_score)
             
+            # Asset Logbook CSV Export Mode
+            if asset_mode:
+                st.write("---")
+                st.subheader("📋 Asset Logbook CSV Export")
+                df_export = pd.DataFrame(st.session_state['crack_data'], columns=["Crack ID", "Width (mm)", "Length (mm)"])
+                df_export["Location"] = location_input
+                df_export["CHI Score (%)"] = chi_score
+                df_export["Timestamp"] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                csv_data = df_export.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="📥 Download Inspection Logbook (.csv)",
+                    data=csv_data,
+                    file_name="CrackWatch_Asset_Logbook.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
             st.write("---")
             st.subheader("📥 Step 3: Download Certified Inspection PDF")
             with open(pdf_file_name, "rb") as pdf_f:
                 st.download_button(
-                    label="📥 Download Certified Repair PDF (Watermarked + Cost & Growth)",
+                    label="📥 Download Certified Repair PDF (Watermarked + CHI Score & Cost)",
                     data=pdf_f,
                     file_name=pdf_file_name,
                     mime="application/pdf",
