@@ -171,7 +171,7 @@ def run_opencv_analysis(image_path):
             # Draw smooth bounding box or rotated bounding box for clean UI presentation
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
-            box = np.int0(box)
+            box = box.astype(np.int32)
             cv2.drawContours(img, [box], 0, color, 2)
             
             # Also lightly draw the core contour
