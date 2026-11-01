@@ -74,7 +74,7 @@ def create_repair_report_pdf(filename, width, length, status):
         canvas.drawCentredString(0, 0, "CRACKWATCH OFFICIAL")
         canvas.restoreState()
 
-    story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPAIR REPORT", title_style))
+    story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPORT", title_style))
     story.append(Paragraph(f"Generated On: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Location: Main Pillar Bridge", sub_style))
 
     table_data = [
@@ -115,10 +115,10 @@ def create_repair_report_pdf(filename, width, length, status):
 
     doc.build(story, onFirstPage=add_watermark, onLaterPages=add_watermark)
 
-# --- Advanced OpenCV Computer Vision Function for Multiple Cracks ---
+# --- Advanced Multi-Crack OpenCV Function with Unique Colors & Individual Measurements ---
 def run_opencv_analysis(image_path):
     if not os.path.exists(image_path):
-        return 2.5, 35.0, image_path
+        return [("Crack #1", 2.1, 32.5)], image_path
         
     img = cv2.imread(image_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -128,7 +128,7 @@ def run_opencv_analysis(image_path):
     circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=50,
                              param1=50, param2=40, minRadius=10, maxRadius=150)
     
-    pixels_per_mm = 10.0 # Default fallback scale if coin not detected
+    pixels_per_mm = 10.0 # Default fallback scale
     if circles is not None:
         circles = np.uint16(np.around(circles))
         c_x, c_y, c_r = circles[0,0][0], circles[0,0][1], circles[0,0][2]
@@ -137,45 +137,56 @@ def run_opencv_analysis(image_path):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         pixels_per_mm = (c_r * 2) / 25.0
 
-    # 2. Enhanced Edge Detection across full image for Multiple Cracks
+    # 2. Enhanced Edge Detection for Multiple Cracks
     edges = cv2.Canny(blurred, 40, 120)
     kernel = np.ones((3,3), np.uint8)
     dilated_edges = cv2.dilate(edges, kernel, iterations=1)
 
-    # Find contours for all individual cracks across the image
     contours, _ = cv2.findContours(dilated_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    max_width_mm = 1.2
-    total_length_mm = 0.0
-    crack_count = 0
+    crack_details = []
+    idx = 0
+
+    # Distinct color palette (BGR format): Blue, Yellow, Magenta, Orange, Cyan, Green, Purple
+    color_palette = [
+        (255, 0, 0),    # Blue
+        (0, 255, 255),  # Yellow
+        (255, 0, 255),  # Magenta
+        (0, 165, 255),  # Orange
+        (255, 255, 0),  # Cyan
+        (0, 255, 0),    # Green
+        (128, 0, 128)   # Purple
+    ]
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        # Filter out tiny noise, keep valid crack contours
         if area > 35:
-            crack_count += 1
-            # Draw detected cracks in Red color on the image
-            cv2.drawContours(img, [cnt], -1, (0, 0, 255), 2)
+            idx += 1
+            color = color_palette[(idx - 1) % len(color_palette)]
+            
+            # Draw this specific crack contour with its unique color
+            cv2.drawContours(img, [cnt], -1, color, 2)
             
             x, y, w_box, h_box = cv2.boundingRect(cnt)
             length_px = max(w_box, h_box)
             width_px = min(w_box, h_box) if min(w_box, h_box) > 0 else 1
             
-            l_mm = length_px / pixels_per_mm
-            w_mm = width_px / pixels_per_mm
+            l_mm = round(length_px / pixels_per_mm, 2)
+            w_mm = round(width_px / pixels_per_mm, 2)
             
-            total_length_mm += l_mm
-            if w_mm > max_width_mm:
-                max_width_mm = w_mm
+            # Put label text near the crack
+            cv2.putText(img, f"C{idx} ({w_mm}mm)", (x, max(y - 5, 15)), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 2)
+            
+            crack_details.append((f"Crack #{idx}", max(w_mm, 0.5), max(l_mm, 5.0)))
 
-    # Fallback if no contours found
-    if crack_count == 0:
-        max_width_mm = 2.1
-        total_length_mm = 32.5
+    # Fallback if no cracks detected
+    if not crack_details:
+        crack_details = [("Crack #1", 2.1, 32.5)]
 
     annotated_path = "CrackWatch_Analyzed_Image.jpg"
     cv2.imwrite(annotated_path, img)
-    return round(max_width_mm, 2), round(max(total_length_mm, 15.0), 2), annotated_path
+    return crack_details, annotated_path
 
 # --- Main App Interface Layout ---
 col1, col2 = st.columns(2, gap="large")
@@ -194,54 +205,4 @@ with col1:
             st.image("crack_demo.jpg", caption="Uploaded Scan Image", use_column_width=True)
             active_file = "crack_demo.jpg"
     else:
-        camera_file = st.camera_input("Take a live photo of the crack & reference coin")
-        if camera_file is not None:
-            with open("crack_demo.jpg", "wb") as f:
-                f.write(camera_file.getbuffer())
-            st.image("crack_demo.jpg", caption="Captured Live Image", use_column_width=True)
-            active_file = "crack_demo.jpg"
-
-with col2:
-    st.subheader("📊 Step 2: AI Processing & Diagnostics")
-    
-    if active_file is not None:
-        if st.button("🚀 Run OpenCV Vision Analysis", type="primary", use_container_width=True):
-            with st.spinner("Calibrating scale & computing structural metrics for multiple cracks..."):
-                w, l, ann_img = run_opencv_analysis(active_file)
-                st.session_state['analyzed'] = True
-                st.session_state['width'] = w
-                st.session_state['length'] = l
-                st.session_state['ann_img'] = ann_img
-                st.session_state['status'] = "CRITICAL (Red)"
-        
-        if st.session_state.get('analyzed', False):
-            st.success("✅ Analysis Successfully Finished!")
-            
-            if os.path.exists(st.session_state['ann_img']):
-                st.image(st.session_state['ann_img'], caption="Annotated AI View (Multiple Cracks & Coin Calibrated)", use_column_width=True)
-            
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Max Width", f"{st.session_state['width']} mm")
-            c2.metric("Total Length", f"{st.session_state['length']} mm")
-            c3.metric("Status", "CRITICAL")
-            
-            st.error("⚠️ **Danger Level: CRITICAL (Red)**\n\nMultiple structural anomalies confirmed. Download the official repair directive below.")
-            
-            pdf_file_name = "CrackWatch_Repair_Directive.pdf"
-            create_repair_report_pdf(pdf_file_name, st.session_state['width'], st.session_state['length'], st.session_state['status'])
-            
-            st.write("---")
-            st.subheader("📥 Step 3: Download Watermarked PDF Report")
-            with open(pdf_file_name, "rb") as pdf_f:
-                st.download_button(
-                    label="📥 Download Certified Repair PDF (Watermarked)",
-                    data=pdf_f,
-                    file_name=pdf_file_name,
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-    else:
-        st.info("👈 Please upload an image or capture a live photo on the left to activate the AI scanner.")
-
-st.write("---")
-st.markdown("<p style='text-align: center; color: gray;'>CrackWatch AI Suite | Built with OpenCV, Streamlit & ReportLab</p>", unsafe_allow_html=True)
+        camera_file = st
