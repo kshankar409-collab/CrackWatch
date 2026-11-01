@@ -31,12 +31,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 25px;
     }
-    .metric-card {
-        background-color: #F3F4F6;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 5px solid #1E3A8A;
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -49,14 +43,12 @@ with st.sidebar:
     st.info("**Developers:**\n* Shreya Ughade\n* Srija Bera\n* Divyansh Patel\n* Project Lead")
     st.write("---")
     st.markdown("### ⚙️ Calibration & Settings")
-    st.reference_coin = st.write("Reference: Standard 1 Rupee Coin (25mm)")
+    st.write("Reference: Standard 1 Rupee Coin (25mm)")
     
-    # Exhibition Extra: Location Input
     st.write("---")
     st.markdown("### 📍 Inspection Site Tag")
     location_input = st.text_input("Structure / Location Name", value="Main Highway Bridge - Pillar #4")
     
-    # Exhibition Extra: Historical Tracking Mode Toggle
     tracking_mode = st.checkbox("Enable Time-Series Growth Tracking", value=True)
 
 # --- PDF Generation Function with Watermark & Advanced Metrics ---
@@ -90,7 +82,6 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
     story.append(Paragraph("🏗️ CRACKWATCH CERTIFIED INSPECTION & REPAIR REPORT", title_style))
     story.append(Paragraph(f"Generated On: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Location: {location}", sub_style))
 
-    # Summary Financial & Growth Box
     summary_text = f"<b>Economic Impact Analysis:</b> Estimated Repair Cost: <b>₹ {cost:,}</b> | <b>Expansion Rate (MoM):</b> +{growth}%"
     story.append(Paragraph(summary_text, body_style))
     story.append(Spacer(1, 8))
@@ -211,10 +202,6 @@ def run_opencv_analysis(image_path):
     cv2.imwrite(annotated_path, img)
     return crack_details, annotated_path
 
-# --- Initialize Session State ---
-if 'active_file' not in st.session_state:
-    st.session_state['active_file'] = None
-
 # --- Main App Interface Layout ---
 col1, col2 = st.columns(2, gap="large")
 
@@ -222,29 +209,30 @@ with col1:
     st.subheader("📷 Step 1: Provide Crack Target")
     input_option = st.radio("Choose Input Method:", ["Upload Image File", "Capture Live Photo"])
 
+    uploaded_file = None
+    camera_file = None
+
     if input_option == "Upload Image File":
         uploaded_file = st.file_uploader("Upload concrete image with reference coin", type=["jpg", "png", "jpeg"])
         if uploaded_file is not None:
             with open("crack_demo.jpg", "wb") as f:
                 f.write(uploaded_file.getbuffer())
-            st.session_state['active_file'] = "crack_demo.jpg"
     else:
         camera_file = st.camera_input("Take a live photo of the crack & reference coin")
         if camera_file is not None:
             with open("crack_demo.jpg", "wb") as f:
                 f.write(camera_file.getbuffer())
-            st.session_state['active_file'] = "crack_demo.jpg"
 
-    if st.session_state['active_file'] and os.path.exists(st.session_state['active_file']):
-        st.image(st.session_state['active_file'], caption=f"Target Site: {location_input}", use_column_width=True)
+    if os.path.exists("crack_demo.jpg") and (uploaded_file is not None or camera_file is not None or os.path.getsize("crack_demo.jpg") > 0):
+        st.image("crack_demo.jpg", caption=f"Target Site: {location_input}", use_column_width=True)
 
 with col2:
     st.subheader("📊 Step 2: AI Processing & Diagnostics")
     
-    if st.session_state['active_file'] is not None:
+    if os.path.exists("crack_demo.jpg"):
         if st.button("🚀 Run Advanced AI Inspection", type="primary", use_container_width=True):
             with st.spinner("Analyzing structural health, computing cost & expansion rates..."):
-                crack_data, ann_img = run_opencv_analysis(st.session_state['active_file'])
+                crack_data, ann_img = run_opencv_analysis("crack_demo.jpg")
                 st.session_state['analyzed'] = True
                 st.session_state['crack_data'] = crack_data
                 st.session_state['ann_img'] = ann_img
@@ -256,7 +244,6 @@ with col2:
             if os.path.exists(st.session_state['ann_img']):
                 st.image(st.session_state['ann_img'], caption=f"Site: {location_input} | Multi-Crack Detection View", use_column_width=True)
             
-            # Exhibition Feature Display: Cost & Expansion Calculations
             max_w = max([w for _, w, _ in st.session_state['crack_data']])
             total_l = sum([l for _, _, l in st.session_state['crack_data']])
             estimated_cost = int((total_l * 150) + (max_w * 900) + 2000)
@@ -266,7 +253,7 @@ with col2:
             m1, m2 = st.columns(2)
             m1.metric("Est. Repair Cost", f"₹ {estimated_cost:,}", delta="Epoxy Grouting Estimate")
             if tracking_mode:
-                m2.metric("MoM Expansion Rate", f"+{expansion_growth}%", delta="High Risk Growth", delta_value="inverse")
+                m2.metric("MoM Expansion Rate", f"+{expansion_growth}%", delta="High Risk Growth")
 
             st.markdown("### 🔍 Individual Crack Measurements & Risk Levels:")
             for name, width, length in st.session_state['crack_data']:
@@ -282,7 +269,6 @@ with col2:
             
             st.error(f"⚠️ **Alert at [{location_input}]:** Multiple fractures detected requiring immediate structural intervention.")
             
-            # Generate PDF with all new parameters
             pdf_file_name = "CrackWatch_Repair_Directive.pdf"
             create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'], location_input, estimated_cost, expansion_growth)
             
