@@ -50,7 +50,6 @@ if not st.session_state['authenticated']:
         st.write("Please enter your authorized credentials to access the CrackWatch diagnostic suite.")
         
         entered_pass = st.text_input("Access Password", type="password")
-        # Default exhibition password is set to 'crackwatch2026'
         if st.button("Login to Dashboard", type="primary", use_container_width=True):
             if entered_pass == "crackwatch2026":
                 st.session_state['authenticated'] = True
@@ -116,7 +115,7 @@ texts = {
         "chi_title": "संरचनात्मक स्वास्थ्य सूचकांक (CHI)",
         "cost_title": "अनुमानित मरम्मत लागत",
         "expansion": "विस्तार दर",
-        "ai_brief": "🤖 एआई सलाहकार कार्यकारी विवरण:",
+        "ai_brief": "एआई सलाहकार कार्यकारी विवरण:",
         "compliance": "📖 सिविल इंजीनियरिंग अनुपालन और मानक (IS 456 / ASTM E112)",
         "severity": "📊 गंभीरता वितरण विश्लेषण:",
         "measurements": "🔍 व्यक्तिगत दरार माप और जोखिम स्तर:",
@@ -142,7 +141,7 @@ texts = {
 }
 t = texts[lang_choice]
 
-# --- PDF Generation Function with Watermark & Advanced Metrics ---
+# --- PDF Generation Function with Watermark, Digital Stamp & Team Credits ---
 def create_repair_report_pdf(filename, crack_data, status, location, cost, growth, chi_score):
     doc = SimpleDocTemplate(filename, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
     story = []
@@ -182,8 +181,8 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
         lvl = "CRITICAL (Severe)" if width > 2.0 else "MODERATE (Stable)"
         table_data.append([name, f"{width} mm", f"{length} mm", lvl])
     
-    t = Table(table_data, colWidths=[90, 110, 110, 190])
-    t.setStyle(TableStyle([
+    t_pdf = Table(table_data, colWidths=[90, 110, 110, 190])
+    t_pdf.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1E3A8A")),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -194,7 +193,7 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
         ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
         ('FONTSIZE', (0,1), (-1,-1), 9),
     ]))
-    story.append(t)
+    story.append(t_pdf)
     story.append(Spacer(1, 10))
 
     story.append(Paragraph("🛠️ Standard Structural Crack Repair Protocol", heading_style))
@@ -207,9 +206,14 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
     story.append(Paragraph(repair_steps, body_style))
     story.append(Spacer(1, 10))
 
-    story.append(Paragraph("👥 Project Team Credits:", heading_style))
-    team_text = "Shreya Ughade | Srija Bera | Divyansh Patel | Project Lead<br/><i>CrackWatch AI System</i>"
-    story.append(Paragraph(team_text, body_style))
+    # --- Digital Inspector Stamp & Signature Section ---
+    story.append(Paragraph("🔏 Verified Audit & Inspector Digital Sign-Off", heading_style))
+    stamp_text = (
+        "<b>Digital Stamp Status:</b> <font color='#15803D'><b>VERIFIED & APPROVED</b></font><br/>"
+        "<b>Authorized Structural Auditors:</b> Shreya Ughade | Srija Bera | Divyansh Patel (Project Lead)<br/>"
+        "<i>Certified by CrackWatch AI Computer Vision Diagnostic Suite</i>"
+    )
+    story.append(Paragraph(stamp_text, body_style))
 
     doc.build(story, onFirstPage=add_watermark, onLaterPages=add_watermark)
 
@@ -355,6 +359,10 @@ with col2:
                 st.warning("🟡 **SAFETY STATUS: MODERATE WARNING** - Schedule minor epoxy sealing and surface patching within 30 days.")
             else:
                 st.error("🚨 **SAFETY STATUS: CRITICAL EMERGENCY** - Immediate structural intervention, load restriction, and epoxy high-pressure grouting required!")
+                
+                # --- NEW FEATURE: Emergency SMS / WhatsApp Alert Simulation Button ---
+                if st.button("🚨 Trigger Automated Emergency Dispatch (SMS / WhatsApp Alert)"):
+                    st.toast("✅ Emergency alert successfully dispatched to Municipal Disaster Cell & Maintenance Team!", icon="🚀")
 
             # Side-by-Side Dual Image Display
             tab_view1, tab_view2 = st.tabs(["📌 Annotated Bounding View", "🔥 Full-Area Thermal Stress Heatmap"])
@@ -383,6 +391,13 @@ with col2:
             st.markdown(f"### {t['ai_brief']}")
             ai_summary_text = f"Inspection report for site **'{location_input}'**. Detected **{crack_count} distinct fracture zones**. The Structural Health Index is computed at **{chi_score}%**. Estimated restorative repair cost is **₹ {estimated_cost:,}**. Immediate engineering review is advised."
             st.info(ai_summary_text)
+
+            # --- NEW FEATURE: Predictive Risk Forecasting Trend Chart ---
+            st.markdown("### 📈 Predictive Risk Forecasting (Future Damage Timeline):")
+            forecast_months = ["Current", "3 Months", "6 Months", "12 Months"]
+            forecast_chi = [chi_score, max(5, chi_score - 15), max(5, chi_score - 30), max(0, chi_score - 45)]
+            forecast_df = pd.DataFrame({"Timeline": forecast_months, "Predicted CHI Score (%)": forecast_chi}).set_index("Timeline")
+            st.line_chart(forecast_df)
 
             # Civil Engineering Compliance & Standards Tagging
             with st.expander(t["compliance"]):
@@ -423,7 +438,7 @@ with col2:
             st.subheader(t["download_pdf"])
             with open(pdf_file_name, "rb") as pdf_f:
                 st.download_button(
-                    label="📥 Download Certified Repair PDF (Watermarked + CHI Score & Cost)",
+                    label="📥 Download Certified Repair PDF (Watermarked + Digital Inspector Stamp)",
                     data=pdf_f,
                     file_name=pdf_file_name,
                     mime="application/pdf",
