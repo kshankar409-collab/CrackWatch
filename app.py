@@ -38,27 +38,6 @@ st.markdown("""
 st.markdown('<p class="main-title">🏗️ CrackWatch: AI Structural Inspection & Repair System</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Advanced Computer Vision Platform | Science Exhibition Demo</p>', unsafe_allow_html=True)
 
-# --- Secure Login Authentication Wall ---
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
-
-if not st.session_state['authenticated']:
-    st.markdown("---")
-    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
-    with col_l2:
-        st.subheader("🔐 Restricted Access: Inspector Login")
-        st.write("Please enter your authorized credentials to access the CrackWatch diagnostic suite.")
-        
-        entered_pass = st.text_input("Access Password", type="password")
-        if st.button("Login to Dashboard", type="primary", use_container_width=True):
-            if entered_pass == "crackwatch2026":
-                st.session_state['authenticated'] = True
-                st.rerun()
-            else:
-                st.error("❌ Invalid Password. (Exhibition Demo Pass: `crackwatch2026`)")
-    
-    st.stop()
-
 # --- Sidebar Team Info, Language Selector & Interactive Cost Sliders ---
 with st.sidebar:
     st.header("👥 Project Team")
@@ -79,11 +58,6 @@ with st.sidebar:
     
     tracking_mode = st.checkbox("Enable Time-Series Growth Tracking", value=True)
     uav_mode = st.checkbox("Enable UAV / Drone Telemetry Feed", value=True)
-    
-    st.write("---")
-    if st.button("🔒 Logout Session"):
-        st.session_state['authenticated'] = False
-        st.rerun()
 
 # --- Multi-Language Dictionary ---
 texts = {
@@ -115,7 +89,7 @@ texts = {
         "chi_title": "संरचनात्मक स्वास्थ्य सूचकांक (CHI)",
         "cost_title": "अनुमानित मरम्मत लागत",
         "expansion": "विस्तार दर",
-        "ai_brief": "एआई सलाहकार कार्यकारी विवरण:",
+        "ai_brief": "🤖 एआई सलाहकार कार्यकारी विवरण:",
         "compliance": "📖 सिविल इंजीनियरिंग अनुपालन और मानक (IS 456 / ASTM E112)",
         "severity": "📊 गंभीरता वितरण विश्लेषण:",
         "measurements": "🔍 व्यक्तिगत दरार माप और जोखिम स्तर:",
@@ -206,7 +180,6 @@ def create_repair_report_pdf(filename, crack_data, status, location, cost, growt
     story.append(Paragraph(repair_steps, body_style))
     story.append(Spacer(1, 10))
 
-    # --- Digital Inspector Stamp & Signature Section ---
     story.append(Paragraph("🔏 Verified Audit & Inspector Digital Sign-Off", heading_style))
     stamp_text = (
         "<b>Digital Stamp Status:</b> <font color='#15803D'><b>VERIFIED & APPROVED</b></font><br/>"
@@ -360,7 +333,6 @@ with col2:
             else:
                 st.error("🚨 **SAFETY STATUS: CRITICAL EMERGENCY** - Immediate structural intervention, load restriction, and epoxy high-pressure grouting required!")
                 
-                # --- NEW FEATURE: Emergency SMS / WhatsApp Alert Simulation Button ---
                 if st.button("🚨 Trigger Automated Emergency Dispatch (SMS / WhatsApp Alert)"):
                     st.toast("✅ Emergency alert successfully dispatched to Municipal Disaster Cell & Maintenance Team!", icon="🚀")
 
@@ -375,7 +347,6 @@ with col2:
                 if os.path.exists(st.session_state['heat_img']):
                     st.image(st.session_state['heat_img'], caption=f"Site: {location_input} | Full-Area Thermal Stress Map", use_column_width=True)
             
-            # Dynamic Cost calculated using sidebar interactive sliders
             estimated_cost = int((total_l * 150) + (max_w * epoxy_rate) + labor_rate)
             expansion_growth = round(random.uniform(9.2, 19.5), 1)
 
@@ -392,7 +363,7 @@ with col2:
             ai_summary_text = f"Inspection report for site **'{location_input}'**. Detected **{crack_count} distinct fracture zones**. The Structural Health Index is computed at **{chi_score}%**. Estimated restorative repair cost is **₹ {estimated_cost:,}**. Immediate engineering review is advised."
             st.info(ai_summary_text)
 
-            # --- NEW FEATURE: Predictive Risk Forecasting Trend Chart ---
+            # Predictive Risk Forecasting Trend Chart
             st.markdown("### 📈 Predictive Risk Forecasting (Future Damage Timeline):")
             forecast_months = ["Current", "3 Months", "6 Months", "12 Months"]
             forecast_chi = [chi_score, max(5, chi_score - 15), max(5, chi_score - 30), max(0, chi_score - 45)]
