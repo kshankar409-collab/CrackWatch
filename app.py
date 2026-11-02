@@ -92,7 +92,7 @@ texts = {
         "step1": "📷 Step 1: Provide Crack Target",
         "input_method": "Choose Input Method:",
         "upload_file": "Upload Image File",
-        "capture_cam": "Capture Live Photo",
+        "capture_cam": "Capture Live Photo / Webcam Frame",
         "run_ai": "🚀 Run Advanced AI & Full-Area Heatmap Scan",
         "completed": "✅ Full-Area Thermal Inspection Completed!",
         "summary": "🏆 Executive Intelligence Summary:",
@@ -109,7 +109,7 @@ texts = {
         "step1": "📷 चरण 1: दरार लक्ष्य प्रदान करें",
         "input_method": "इनपुट विधि चुनें:",
         "upload_file": "छवि फ़ाइल अपलोड करें",
-        "capture_cam": "लाइव फोटो लें",
+        "capture_cam": "लाइव फोटो / वेबकैम फ्रेम लें",
         "run_ai": "🚀 उन्नत एआई और थर्मल स्कैन चलाएं",
         "completed": "✅ थर्मल निरीक्षण पूर्ण हुआ!",
         "summary": "🏆 कार्यकारी बुद्धिमत्ता सारांश:",
@@ -126,7 +126,7 @@ texts = {
         "step1": "📷 पायरी १: तडकलेला भाग निवडा",
         "input_method": "इनपुट पद्धत निवडा:",
         "upload_file": "प्रतिमा फाइल अपलोड करा",
-        "capture_cam": "लाइव्ह फोटो घ्या",
+        "capture_cam": "लाइव्ह फोटो / वेबकॅम फ्रेम घ्या",
         "run_ai": "🚀 प्रगत AI आणि थर्मल स्कॅन चालवा",
         "completed": "✅ थर्मल तपासणी पूर्ण झाली!",
         "summary": "🏆 कार्यकारी बुद्धिमत्ता सारांश:",
@@ -314,7 +314,8 @@ with col1:
             with open("crack_demo.jpg", "wb") as f:
                 f.write(uploaded_file.getbuffer())
     else:
-        camera_file = st.camera_input("Take a live photo of the crack & reference coin")
+        st.info("💡 Live Webcam Mode Active: Capture a frame directly from your camera for real-time AI computer vision processing.")
+        camera_file = st.camera_input("Capture Live Inspection Frame")
         if camera_file is not None:
             with open("crack_demo.jpg", "wb") as f:
                 f.write(camera_file.getbuffer())
@@ -429,7 +430,7 @@ with col2:
                     use_container_width=True
                 )
     else:
-        st.info("👈 Please upload an image or capture a live photo on the left to activate the AI scanner.")
+        st.info("👈 Please upload an image or capture a live camera frame on the left to activate the AI scanner.")
 
 st.write("---")
 st.markdown("<p style='text-align: center; color: gray;'>CrackWatch AI Suite | Built with OpenCV, Streamlit & ReportLab</p>", unsafe_allow_html=True)
