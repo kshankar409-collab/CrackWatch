@@ -38,13 +38,41 @@ st.markdown("""
 st.markdown('<p class="main-title">🏗️ CrackWatch: AI Structural Inspection & Repair System</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Advanced Computer Vision Platform | Science Exhibition Demo</p>', unsafe_allow_html=True)
 
-# --- Sidebar Team Info & Exhibition Controls ---
+# --- Secure Login Authentication Wall ---
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+
+if not st.session_state['authenticated']:
+    st.markdown("---")
+    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
+    with col_l2:
+        st.subheader("🔐 Restricted Access: Inspector Login")
+        st.write("Please enter your authorized credentials to access the CrackWatch diagnostic suite.")
+        
+        entered_pass = st.text_input("Access Password", type="password")
+        # Default exhibition password is set to 'crackwatch2026'
+        if st.button("Login to Dashboard", type="primary", use_container_width=True):
+            if entered_pass == "crackwatch2026":
+                st.session_state['authenticated'] = True
+                st.rerun()
+            else:
+                st.error("❌ Invalid Password. (Exhibition Demo Pass: `crackwatch2026`)")
+    
+    st.stop()
+
+# --- Sidebar Team Info, Language Selector & Interactive Cost Sliders ---
 with st.sidebar:
     st.header("👥 Project Team")
     st.info("**Developers:**\n* Shreya Ughade\n* Srija Bera\n* Divyansh Patel\n* Project Lead")
     st.write("---")
-    st.markdown("### ⚙️ Calibration & Settings")
-    st.write("Reference: Standard 1 Rupee Coin (25mm)")
+    
+    st.markdown("### 🌐 Language / भाषा / भाषा")
+    lang_choice = st.selectbox("Select Display Language", ["English", "Hindi (हिन्दी)", "Marathi (मराठी)"])
+    
+    st.write("---")
+    st.markdown("### 💰 Interactive Cost Parameters")
+    epoxy_rate = st.slider("Epoxy Cost Multiplier (₹/mm width)", min_value=500, max_value=2000, value=900, step=100)
+    labor_rate = st.slider("Labor & Grouting Base (₹)", min_value=1000, max_value=5000, value=2000, step=500)
     
     st.write("---")
     st.markdown("### 📍 Inspection Site Tag")
@@ -52,6 +80,67 @@ with st.sidebar:
     
     tracking_mode = st.checkbox("Enable Time-Series Growth Tracking", value=True)
     uav_mode = st.checkbox("Enable UAV / Drone Telemetry Feed", value=True)
+    
+    st.write("---")
+    if st.button("🔒 Logout Session"):
+        st.session_state['authenticated'] = False
+        st.rerun()
+
+# --- Multi-Language Dictionary ---
+texts = {
+    "English": {
+        "step1": "📷 Step 1: Provide Crack Target",
+        "input_method": "Choose Input Method:",
+        "upload_file": "Upload Image File",
+        "capture_cam": "Capture Live Photo",
+        "run_ai": "🚀 Run Advanced AI & Full-Area Heatmap Scan",
+        "completed": "✅ Full-Area Thermal Inspection Completed!",
+        "summary": "🏆 Executive Intelligence Summary:",
+        "chi_title": "Structural Health Index (CHI)",
+        "cost_title": "Est. Repair Cost",
+        "expansion": "MoM Expansion",
+        "ai_brief": "🤖 AI Consultant Executive Briefing:",
+        "compliance": "📖 Civil Engineering Compliance & Standards Tagging (IS 456 / ASTM E112)",
+        "severity": "📊 Severity Distribution Analysis:",
+        "measurements": "🔍 Individual Crack Measurements & Risk Levels:",
+        "download_pdf": "📥 Step 3: Download Certified Inspection PDF"
+    },
+    "Hindi (हिन्दी)": {
+        "step1": "📷 चरण 1: दरार लक्ष्य प्रदान करें",
+        "input_method": "इनपुट विधि चुनें:",
+        "upload_file": "छवि फ़ाइल अपलोड करें",
+        "capture_cam": "लाइव फोटो लें",
+        "run_ai": "🚀 उन्नत एआई और थर्मल स्कैन चलाएं",
+        "completed": "✅ थर्मल निरीक्षण पूर्ण हुआ!",
+        "summary": "🏆 कार्यकारी बुद्धिमत्ता सारांश:",
+        "chi_title": "संरचनात्मक स्वास्थ्य सूचकांक (CHI)",
+        "cost_title": "अनुमानित मरम्मत लागत",
+        "expansion": "विस्तार दर",
+        "ai_brief": "🤖 एआई सलाहकार कार्यकारी विवरण:",
+        "compliance": "📖 सिविल इंजीनियरिंग अनुपालन और मानक (IS 456 / ASTM E112)",
+        "severity": "📊 गंभीरता वितरण विश्लेषण:",
+        "measurements": "🔍 व्यक्तिगत दरार माप और जोखिम स्तर:",
+        "download_pdf": "📥 चरण 3: प्रमाणित निरीक्षण पीडीएफ डाउनलोड करें"
+    },
+    "Marathi (मराठी)": {
+        "step1": "📷 पायरी १: तडकलेला भाग निवडा",
+        "input_method": "इनपुट पद्धत निवडा:",
+        "upload_file": "प्रतिमा फाइल अपलोड करा",
+        "capture_cam": "लाइव्ह फोटो घ्या",
+        "run_ai": "🚀 प्रगत AI आणि थर्मल स्कॅन चालवा",
+        "completed": "✅ थर्मल तपासणी पूर्ण झाली!",
+        "summary": "🏆 कार्यकारी बुद्धिमत्ता सारांश:",
+        "chi_title": "स्ट्रक्चरल हेल्थ इंडेक्स (CHI)",
+        "cost_title": "अंदाजे दुरुस्ती खर्च",
+        "expansion": "विस्तार दर",
+        "ai_brief": "🤖 AI सल्लागार कार्यकारी माहिती:",
+        "compliance": "📖 सिव्हिल इंजिनियरिंग मानके (IS 456 / ASTM E112)",
+        "severity": "📊 गांभीर्य वितरण विश्लेषण:",
+        "measurements": "🔍 वैयक्तिक तडक मोजमाप आणि धोका पातळी:",
+        "download_pdf": "📥 पायरी ३: प्रमाणित तपासणी PDF डाउनलोड करा"
+    }
+}
+t = texts[lang_choice]
 
 # --- PDF Generation Function with Watermark & Advanced Metrics ---
 def create_repair_report_pdf(filename, crack_data, status, location, cost, growth, chi_score):
@@ -213,13 +302,13 @@ def run_opencv_analysis(image_path):
 col1, col2 = st.columns(2, gap="large")
 
 with col1:
-    st.subheader("📷 Step 1: Provide Crack Target")
-    input_option = st.radio("Choose Input Method:", ["Upload Image File", "Capture Live Photo"])
+    st.subheader(t["step1"])
+    input_option = st.radio(t["input_method"], [t["upload_file"], t["capture_cam"]])
 
     uploaded_file = None
     camera_file = None
 
-    if input_option == "Upload Image File":
+    if input_option == t["upload_file"]:
         uploaded_file = st.file_uploader("Upload concrete image with reference coin", type=["jpg", "png", "jpeg"])
         if uploaded_file is not None:
             with open("crack_demo.jpg", "wb") as f:
@@ -237,109 +326,6 @@ with col2:
     st.subheader("📊 Step 2: AI Processing & Thermal Diagnostics")
     
     if os.path.exists("crack_demo.jpg"):
-        if st.button("🚀 Run Advanced AI & Full-Area Heatmap Scan", type="primary", use_container_width=True):
+        if st.button(t["run_ai"], type="primary", use_container_width=True):
             with st.spinner("Processing structural contours & rendering full-area thermal stress map..."):
-                crack_data, ann_img, heat_img = run_opencv_analysis("crack_demo.jpg")
-                st.session_state['analyzed'] = True
-                st.session_state['crack_data'] = crack_data
-                st.session_state['ann_img'] = ann_img
-                st.session_state['heat_img'] = heat_img
-                st.session_state['status'] = "CRITICAL (Multi-Anomaly)"
-        
-        if st.session_state.get('analyzed', False):
-            st.success("✅ Full-Area Thermal Inspection Completed!")
-            
-            # Optional UAV / Drone Telemetry Simulation Banner
-            if uav_mode:
-                st.info("🚁 **UAV Telemetry Feed Active:** Altitude: 14.2m | Gimbal Pitch: -45° | Optical-Thermal Sync: Optimal")
-
-            # Traffic-Light Emergency Priority Badge
-            max_w = max([w for _, w, _ in st.session_state['crack_data']])
-            total_l = sum([l for _, _, l in st.session_state['crack_data']])
-            crack_count = len(st.session_state['crack_data'])
-            chi_score = max(10, int(100 - (max_w * 10 + total_l * 0.2 + crack_count * 5)))
-            
-            if chi_score > 70:
-                st.success("🟢 **SAFETY STATUS: NORMAL / STABLE** - Regular long-term structural monitoring recommended.")
-            elif chi_score >= 40:
-                st.warning("🟡 **SAFETY STATUS: MODERATE WARNING** - Schedule minor epoxy sealing and surface patching within 30 days.")
-            else:
-                st.error("🚨 **SAFETY STATUS: CRITICAL EMERGENCY** - Immediate structural intervention, load restriction, and epoxy high-pressure grouting required!")
-
-            # Side-by-Side Dual Image Display
-            tab_view1, tab_view2 = st.tabs(["📌 Annotated Bounding View", "🔥 Full-Area Thermal Stress Heatmap"])
-            
-            with tab_view1:
-                if os.path.exists(st.session_state['ann_img']):
-                    st.image(st.session_state['ann_img'], caption=f"Site: {location_input} | Multi-Crack Measurement View", use_column_width=True)
-            
-            with tab_view2:
-                if os.path.exists(st.session_state['heat_img']):
-                    st.image(st.session_state['heat_img'], caption=f"Site: {location_input} | Full-Area Thermal Stress Map", use_column_width=True)
-            
-            estimated_cost = int((total_l * 150) + (max_w * 900) + 2000)
-            expansion_growth = round(random.uniform(9.2, 19.5), 1)
-
-            # Dashboard Header Metrics
-            st.markdown("### 🏆 Executive Intelligence Summary:")
-            metric_col1, metric_col2, metric_col3 = st.columns(3)
-            metric_col1.metric("Structural Health (CHI)", f"{chi_score}%", delta="Warning" if chi_score < 70 else "Stable", delta_color="inverse")
-            metric_col2.metric("Est. Repair Cost", f"₹ {estimated_cost:,}", delta="Epoxy Grouting")
-            if tracking_mode:
-                metric_col3.metric("MoM Expansion", f"+{expansion_growth}%", delta="High Risk", delta_color="inverse")
-
-            # AI Executive Briefing Summary Box
-            st.markdown("### 🤖 AI Consultant Executive Briefing:")
-            ai_summary_text = f"Inspection report for site **'{location_input}'**. Detected **{crack_count} distinct fracture zones**. The Structural Health Index is computed at **{chi_score}%**. Estimated restorative repair cost is **₹ {estimated_cost:,}**. Immediate engineering review is advised."
-            st.info(ai_summary_text)
-
-            # Civil Engineering Compliance & Standards Tagging
-            with st.expander("📖 Civil Engineering Compliance & Standards Tagging (IS 456 / ASTM E112)"):
-                st.markdown(
-                    "* **IS 456:2000 Clause 6.2.1:** Surface crack widths exceeding 0.3 mm in aggressive environmental exposure require immediate polymer sealant injection.\n"
-                    "* **ASTM E112 / A262 Guidelines:** Multi-axial structural fractures possessing thermal stress concentrations must be logged under high-priority asset remediation schedules.\n"
-                    "* **Operational Protocol:** High-pressure epoxy grouting is mandated when cumulative crack propagation rates exceed +10% month-over-month."
-                )
-
-            # Severity Distribution Analytics
-            critical_count = sum(1 for _, w, _ in st.session_state['crack_data'] if w > 2.0)
-            moderate_count = crack_count - critical_count
-            
-            st.markdown("### 📊 Severity Distribution Analysis:")
-            chart_data = pd.DataFrame({
-                "Severity Level": ["Critical (>2mm)", "Moderate (<=2mm)"],
-                "Count": [critical_count, moderate_count]
-            }).set_index("Severity Level")
-            st.bar_chart(chart_data)
-
-            st.markdown("### 🔍 Individual Crack Measurements & Risk Levels:")
-            for name, width, length in st.session_state['crack_data']:
-                danger_lvl = "🔴 CRITICAL (Severe)" if width > 2.0 else "🟠 MODERATE (Stable)"
-                
-                st.markdown(f"**{name}**")
-                c_a, c_b, c_c = st.columns(3)
-                c_a.metric("Width", f"{width} mm")
-                c_b.metric("Length", f"{length} mm")
-                c_c.metric("Status", danger_lvl.split()[0])
-                st.write(f"Evaluation: **{danger_lvl}**")
-                st.write("---")
-            
-            # PDF Report generation
-            pdf_file_name = "CrackWatch_Repair_Directive.pdf"
-            create_repair_report_pdf(pdf_file_name, st.session_state['crack_data'], st.session_state['status'], location_input, estimated_cost, expansion_growth, chi_score)
-            
-            st.write("---")
-            st.subheader("📥 Step 3: Download Certified Inspection PDF")
-            with open(pdf_file_name, "rb") as pdf_f:
-                st.download_button(
-                    label="📥 Download Certified Repair PDF (Watermarked + CHI Score & Cost)",
-                    data=pdf_f,
-                    file_name=pdf_file_name,
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-    else:
-        st.info("👈 Please upload an image or capture a live photo on the left to activate the AI scanner.")
-
-st.write("---")
-st.markdown("<p style='text-align: center; color: gray;'>CrackWatch AI Suite | Built with OpenCV, Streamlit & ReportLab</p>", unsafe_allow_html=True)
+                crack
