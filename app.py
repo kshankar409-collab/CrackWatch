@@ -41,7 +41,7 @@ st.markdown('<p class="sub-title">Advanced Computer Vision Platform | Science Ex
 # --- Sidebar Team Info, Language Selector & Interactive Cost Sliders ---
 with st.sidebar:
     st.header("👥 Project Team")
-    st.info("**Developers:**\n* Shreya Ughade\n* Srija Bera\n* Divyansh Patel\n* Project Lead")
+    st.info("**Developers:**\n* Shreya Ughade\n* Srija Bera\n* Divyansh Patel")
     st.write("---")
     
     st.markdown("### 🌐 Language / भाषा / भाषा")
